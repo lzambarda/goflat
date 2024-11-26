@@ -1,8 +1,8 @@
 package goflat
 
 import (
+	"maps"
 	"reflect"
-	"slices"
 	"testing"
 
 	"github.com/google/go-cmp/cmp"
@@ -81,6 +81,7 @@ func testReflectErrorDuplicate(t *testing.T) {
 func testReflectSuccess(t *testing.T) {
 	t.Run("duplicate", testReflectSuccessDuplicate)
 	t.Run("simple", testReflectSuccessSimple)
+	t.Run("subset struct", testReflectSuccessSubsetStruct)
 }
 
 func testReflectSuccessDuplicate(t *testing.T) {
@@ -102,7 +103,7 @@ func testReflectSuccessDuplicate(t *testing.T) {
 
 	expected := &structFactory[foo]{
 		structType:   reflect.TypeOf(foo{}),
-		columnMap:    []int{0, 1, -1},
+		columnMap:    map[int]int{0: 0, 1: 1},
 		columnValues: []any{"", int(0)},
 		columnNames:  []string{"name", "age"},
 	}
@@ -113,7 +114,7 @@ func testReflectSuccessDuplicate(t *testing.T) {
 				return false
 			}
 
-			if !slices.Equal(a.columnMap, b.columnMap) {
+			if !maps.Equal(a.columnMap, b.columnMap) {
 				return false
 			}
 
@@ -146,7 +147,7 @@ func testReflectSuccessSimple(t *testing.T) {
 
 	expected := &structFactory[foo]{
 		structType: reflect.TypeOf(foo{}),
-		columnMap:  []int{0, 1},
+		columnMap:  map[int]int{0: 0, 1: 1},
 	}
 	comparers := []cmp.Option{
 		cmp.AllowUnexported(structFactory[foo]{}),
@@ -155,7 +156,48 @@ func testReflectSuccessSimple(t *testing.T) {
 				return false
 			}
 
-			if !slices.Equal(a.columnMap, b.columnMap) {
+			if !maps.Equal(a.columnMap, b.columnMap) {
+				return false
+			}
+
+			return true
+		}),
+	}
+
+	if diff := cmp.Diff(expected, got, comparers...); diff != "" {
+		t.Errorf("(-want +got):\\n%s", diff)
+	}
+}
+
+func testReflectSuccessSubsetStruct(t *testing.T) {
+	type foo struct {
+		Col2 float32 `flat:"col2"`
+	}
+
+	headers := []string{"col1", "col2", "col3"}
+
+	got, err := newFactory[foo](headers, Options{
+		Strict:                  false,
+		ErrorIfDuplicateHeaders: false,
+		ErrorIfMissingHeaders:   false,
+	})
+	if err != nil {
+		t.Errorf("expected no error, got %v", err)
+	}
+
+	expected := &structFactory[foo]{
+		structType:   reflect.TypeOf(foo{}),
+		columnMap:    map[int]int{1: 0},
+		columnValues: []any{float32(0)},
+	}
+	comparers := []cmp.Option{
+		cmp.AllowUnexported(structFactory[foo]{}),
+		cmp.Comparer(func(a, b structFactory[foo]) bool {
+			if a.structType.String() != b.structType.String() {
+				return false
+			}
+
+			if !maps.Equal(a.columnMap, b.columnMap) {
 				return false
 			}
 

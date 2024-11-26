@@ -16,9 +16,6 @@ var (
 	// does not appear in the input file. Only returned if
 	// [Option.ErrorIfMissingHeaders] is set to true.
 	ErrMissingHeader = errors.New("missing header")
-	// ErrMismatchedFields is returned when the input structs have inconsistent
-	// fields. In theory this will never be returned.
-	ErrMismatchedFields = errors.New("mismatched fields")
 	// ErrUnsupportedType is returned when the unmarshaller encounters an
 	// unsupported type.
 	ErrUnsupportedType = errors.New("unsupported type")

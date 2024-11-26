@@ -31,10 +31,29 @@ func testUnmarshalSuccess(t *testing.T) {
 		Height    float32 `flat:"height"`
 	}
 
-	expected := []record{}
+	expected := []record{
+		{
+			FirstName: "Guybrush",
+			LastName:  "Threepwood",
+			Age:       28,
+			Height:    1.78,
+		},
+		{
+			FirstName: "Elaine",
+			LastName:  "Marley",
+			Age:       20,
+			Height:    1.6,
+		},
+		{
+			FirstName: "LeChuck",
+			LastName:  "",
+			Age:       100,
+			Height:    2.01,
+		},
+	}
 
 	channel := make(chan record)
-	go assertChannel(t, channel, expected)
+	assertChannel(t, channel, expected)
 
 	ctx := context.Background()
 
@@ -59,25 +78,32 @@ func assertChannel[T any](t *testing.T, ch <-chan T, expected []T) {
 	t.Helper()
 
 	ctx, cancel := context.WithTimeout(context.Background(), time.Second*5)
-	defer cancel()
 	var got []T
 
-loop:
-	for {
-		select {
-		case <-ctx.Done():
-			break loop
-		case v, ok := <-ch:
-			if !ok {
-				break loop
+	go func() {
+		defer cancel()
+
+		for {
+			select {
+			case <-ctx.Done():
+				return
+			case v, ok := <-ch:
+				if !ok {
+					return
+				}
+
+				got = append(got, v)
 			}
-
-			got = append(got, v)
 		}
-	}
+	}()
 
-	var zero T
-	if diff := cmp.Diff(expected, got, cmp.AllowUnexported(zero)); diff != "" {
-		t.Errorf("(-expected,+got):\n%s", diff)
-	}
+	t.Cleanup(func() {
+		var zero T
+
+		<-ctx.Done()
+
+		if diff := cmp.Diff(expected, got, cmp.AllowUnexported(zero)); diff != "" {
+			t.Errorf("(-expected,+got):\n%s", diff)
+		}
+	})
 }

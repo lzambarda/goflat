@@ -9,7 +9,7 @@ import (
 
 type structFactory[T any] struct {
 	structType   reflect.Type
-	columnMap    []int
+	columnMap    map[int]int
 	columnValues []any
 	columnNames  []string
 }
@@ -17,10 +17,6 @@ type structFactory[T any] struct {
 // FieldTag is the tag that must be used in the struct fields so that goflat can
 // work with them.
 const FieldTag = "flat"
-
-// columnMapIgnore is used to mark a column as ignored. This is needed if there
-// are duplicate headers that must be skipped.
-const columnMapIgnore = -1
 
 //nolint:varnamelen // Fine-ish here.
 func newFactory[T any](headers []string, options Options) (*structFactory[T], error) {
@@ -38,7 +34,7 @@ func newFactory[T any](headers []string, options Options) (*structFactory[T], er
 
 	factory := &structFactory[T]{
 		structType:   t,
-		columnMap:    make([]int, len(headers)),
+		columnMap:    make(map[int]int, len(headers)),
 		columnValues: make([]any, t.NumField()),
 		columnNames:  make([]string, t.NumField()),
 	}
@@ -80,10 +76,6 @@ func newFactory[T any](headers []string, options Options) (*structFactory[T], er
 					return nil, fmt.Errorf("header %q, index %d and %d: %w", header, j, handledAt, ErrDuplicatedHeader)
 				}
 
-				// If the duplicate headers error flag is diabled, then mark the
-				// column as ignored and continue.
-				factory.columnMap[j] = columnMapIgnore
-
 				continue
 			}
 
@@ -103,9 +95,6 @@ func newFactory[T any](headers []string, options Options) (*structFactory[T], er
 //nolint:forcetypeassert,gocyclo,cyclop,ireturn // Fine for now.
 func (s *structFactory[T]) unmarshal(record []string) (T, error) {
 	var zero T
-	if len(record) != len(s.columnMap) {
-		return zero, fmt.Errorf("expected %d fields, got %d: %w", len(s.columnMap), len(record), ErrMismatchedFields)
-	}
 
 	newStruct := reflect.New(s.structType).Elem()
 
@@ -114,11 +103,12 @@ func (s *structFactory[T]) unmarshal(record []string) (T, error) {
 
 	//nolint:varnamelen // Fine here.
 	for i, column := range record {
-		if s.columnMap[i] == columnMapIgnore {
+		mappedIndex, found := s.columnMap[i]
+		if !found {
 			continue
 		}
 
-		columnBaseValue := s.columnValues[s.columnMap[i]]
+		columnBaseValue := s.columnValues[mappedIndex]
 
 		// special case
 		if u, ok := columnBaseValue.(Unmarshaller); ok {
@@ -170,7 +160,7 @@ func (s *structFactory[T]) unmarshal(record []string) (T, error) {
 			return zero, fmt.Errorf("parse column %d: %w", i, err)
 		}
 
-		newStruct.Field(s.columnMap[i]).Set(reflect.ValueOf(value))
+		newStruct.Field(mappedIndex).Set(reflect.ValueOf(value))
 	}
 
 	return newStruct.Interface().(T), nil
