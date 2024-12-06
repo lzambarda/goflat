@@ -94,8 +94,6 @@ func UnmarshalToSlice[T any](ctx context.Context, reader *csv.Reader, opts Optio
 	})
 
 	g.Go(func() error {
-		defer close(ch)
-
 		return UnmarshalToChannel(ctx, reader, opts, ch)
 	})
 
