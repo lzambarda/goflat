@@ -82,6 +82,7 @@ func testReflectSuccess(t *testing.T) {
 	t.Run("duplicate", testReflectSuccessDuplicate)
 	t.Run("simple", testReflectSuccessSimple)
 	t.Run("subset struct", testReflectSuccessSubsetStruct)
+	t.Run("pointer", testReflectSuccessPointer)
 }
 
 func testReflectSuccessDuplicate(t *testing.T) {
@@ -193,6 +194,46 @@ func testReflectSuccessSubsetStruct(t *testing.T) {
 	comparers := []cmp.Option{
 		cmp.AllowUnexported(structFactory[foo]{}),
 		cmp.Comparer(func(a, b structFactory[foo]) bool {
+			if a.structType.String() != b.structType.String() {
+				return false
+			}
+
+			if !maps.Equal(a.columnMap, b.columnMap) {
+				return false
+			}
+
+			return true
+		}),
+	}
+
+	if diff := cmp.Diff(expected, got, comparers...); diff != "" {
+		t.Errorf("(-want +got):\\n%s", diff)
+	}
+}
+
+func testReflectSuccessPointer(t *testing.T) {
+	type foo struct {
+		Name string `flat:"name"`
+	}
+
+	headers := []string{"name"}
+
+	got, err := newFactory[*foo](headers, Options{
+		Strict:                  true,
+		ErrorIfDuplicateHeaders: true,
+		ErrorIfMissingHeaders:   true,
+	})
+	if err != nil {
+		t.Errorf("expected no error, got %v", err)
+	}
+
+	expected := &structFactory[*foo]{
+		structType: reflect.TypeOf(foo{}),
+		columnMap:  map[int]int{0: 0},
+	}
+	comparers := []cmp.Option{
+		cmp.AllowUnexported(structFactory[*foo]{}),
+		cmp.Comparer(func(a, b structFactory[*foo]) bool {
 			if a.structType.String() != b.structType.String() {
 				return false
 			}

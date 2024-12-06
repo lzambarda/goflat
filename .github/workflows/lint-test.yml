@@ -1,0 +1,46 @@
+name: Lint and Test
+
+on:
+  push:
+    branches: [master]
+  pull_request:
+    branches:
+      - master
+      - feature/*
+      - bugfix/*
+      - patch/*
+      - refactor/*
+      - chore/*
+
+jobs:
+  lint:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repo
+        uses: actions/checkout@v3
+        with:
+          fetch-depth: 0 # needed because of the new-from-rev in golangci
+
+      - name: Set up Go
+        uses: actions/setup-go@v4
+        with:
+          go-version: "1.23"
+
+      - name: golangci-lint
+        uses: golangci/golangci-lint-action@v3
+        with:
+          args: --timeout 5m0s
+
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repo
+        uses: actions/checkout@v3
+
+      - name: Set up Go
+        uses: actions/setup-go@v4
+        with:
+          go-version: "1.23"
+
+      - name: Running Unit Tests
+        run: go test ./...
