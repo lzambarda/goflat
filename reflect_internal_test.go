@@ -24,7 +24,7 @@ func testReflectError(t *testing.T) {
 }
 
 func testReflectErrorTaglessStrict(t *testing.T) {
-	f, err := newFactory[s1]([]string{}, Options{Strict: true})
+	f, err := newFactory[s1]([]string{}, Options{ErrorIfTaglessField: true})
 	if f != nil {
 		t.Errorf("expected nil, got %v", f)
 	}
@@ -44,7 +44,7 @@ func testReflectErrorMissing(t *testing.T) {
 	headers := []string{"name"}
 
 	got, err := newFactory[foo](headers, Options{
-		Strict:                true,
+		ErrorIfTaglessField:   true,
 		ErrorIfMissingHeaders: true,
 	})
 	if got != nil {
@@ -66,7 +66,7 @@ func testReflectErrorDuplicate(t *testing.T) {
 	headers := []string{"name", "age", "name"}
 
 	got, err := newFactory[foo](headers, Options{
-		Strict:                  true,
+		ErrorIfTaglessField:     true,
 		ErrorIfDuplicateHeaders: true,
 	})
 	if got != nil {
@@ -93,11 +93,13 @@ func testReflectSuccessDuplicate(t *testing.T) {
 
 	headers := []string{"name", "age", "name"}
 
-	got, err := newFactory[foo](headers, Options{
-		Strict:                  true,
+	options := Options{
+		ErrorIfTaglessField:     true,
 		ErrorIfDuplicateHeaders: false,
 		ErrorIfMissingHeaders:   true,
-	})
+	}
+
+	got, err := newFactory[foo](headers, options)
 	if err != nil {
 		t.Errorf("expected no error, got %v", err)
 	}
@@ -107,7 +109,9 @@ func testReflectSuccessDuplicate(t *testing.T) {
 		columnMap:    map[int]int{0: 0, 1: 1},
 		columnValues: []any{"", int(0)},
 		columnNames:  []string{"name", "age"},
+		options:      options,
 	}
+
 	comparers := []cmp.Option{
 		cmp.AllowUnexported(structFactory[foo]{}),
 		cmp.Comparer(func(a, b structFactory[foo]) bool {
@@ -116,6 +120,14 @@ func testReflectSuccessDuplicate(t *testing.T) {
 			}
 
 			if !maps.Equal(a.columnMap, b.columnMap) {
+				return false
+			}
+
+			if a.pointer != b.pointer {
+				return false
+			}
+
+			if a.options != b.options {
 				return false
 			}
 
@@ -137,11 +149,13 @@ func testReflectSuccessSimple(t *testing.T) {
 
 	headers := []string{"name", "age"}
 
-	got, err := newFactory[foo](headers, Options{
-		Strict:                  true,
+	options := Options{
+		ErrorIfTaglessField:     true,
 		ErrorIfDuplicateHeaders: true,
 		ErrorIfMissingHeaders:   true,
-	})
+	}
+
+	got, err := newFactory[foo](headers, options)
 	if err != nil {
 		t.Errorf("expected no error, got %v", err)
 	}
@@ -149,6 +163,7 @@ func testReflectSuccessSimple(t *testing.T) {
 	expected := &structFactory[foo]{
 		structType: reflect.TypeOf(foo{}),
 		columnMap:  map[int]int{0: 0, 1: 1},
+		options:    options,
 	}
 	comparers := []cmp.Option{
 		cmp.AllowUnexported(structFactory[foo]{}),
@@ -158,6 +173,14 @@ func testReflectSuccessSimple(t *testing.T) {
 			}
 
 			if !maps.Equal(a.columnMap, b.columnMap) {
+				return false
+			}
+
+			if a.pointer != b.pointer {
+				return false
+			}
+
+			if a.options != b.options {
 				return false
 			}
 
@@ -177,11 +200,13 @@ func testReflectSuccessSubsetStruct(t *testing.T) {
 
 	headers := []string{"col1", "col2", "col3"}
 
-	got, err := newFactory[foo](headers, Options{
-		Strict:                  false,
+	options := Options{
+		ErrorIfTaglessField:     false,
 		ErrorIfDuplicateHeaders: false,
 		ErrorIfMissingHeaders:   false,
-	})
+	}
+
+	got, err := newFactory[foo](headers, options)
 	if err != nil {
 		t.Errorf("expected no error, got %v", err)
 	}
@@ -190,6 +215,7 @@ func testReflectSuccessSubsetStruct(t *testing.T) {
 		structType:   reflect.TypeOf(foo{}),
 		columnMap:    map[int]int{1: 0},
 		columnValues: []any{float32(0)},
+		options:      options,
 	}
 	comparers := []cmp.Option{
 		cmp.AllowUnexported(structFactory[foo]{}),
@@ -199,6 +225,14 @@ func testReflectSuccessSubsetStruct(t *testing.T) {
 			}
 
 			if !maps.Equal(a.columnMap, b.columnMap) {
+				return false
+			}
+
+			if a.pointer != b.pointer {
+				return false
+			}
+
+			if a.options != b.options {
 				return false
 			}
 
@@ -218,11 +252,13 @@ func testReflectSuccessPointer(t *testing.T) {
 
 	headers := []string{"name"}
 
-	got, err := newFactory[*foo](headers, Options{
-		Strict:                  true,
+	options := Options{
+		ErrorIfTaglessField:     true,
 		ErrorIfDuplicateHeaders: true,
 		ErrorIfMissingHeaders:   true,
-	})
+	}
+
+	got, err := newFactory[*foo](headers, options)
 	if err != nil {
 		t.Errorf("expected no error, got %v", err)
 	}
@@ -230,6 +266,8 @@ func testReflectSuccessPointer(t *testing.T) {
 	expected := &structFactory[*foo]{
 		structType: reflect.TypeOf(foo{}),
 		columnMap:  map[int]int{0: 0},
+		pointer:    true,
+		options:    options,
 	}
 	comparers := []cmp.Option{
 		cmp.AllowUnexported(structFactory[*foo]{}),
@@ -239,6 +277,14 @@ func testReflectSuccessPointer(t *testing.T) {
 			}
 
 			if !maps.Equal(a.columnMap, b.columnMap) {
+				return false
+			}
+
+			if a.pointer != b.pointer {
+				return false
+			}
+
+			if a.options != b.options {
 				return false
 			}
 
