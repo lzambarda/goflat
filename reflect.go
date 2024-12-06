@@ -13,6 +13,7 @@ type structFactory[T any] struct {
 	columnMap    map[int]int
 	columnValues []any
 	columnNames  []string
+	options      Options
 }
 
 // FieldTag is the tag that must be used in the struct fields so that goflat can
@@ -45,6 +46,7 @@ func newFactory[T any](headers []string, options Options) (*structFactory[T], er
 		columnMap:    make(map[int]int, len(headers)),
 		columnValues: make([]any, t.NumField()),
 		columnNames:  make([]string, t.NumField()),
+		options:      options,
 	}
 
 	covered := make([]bool, len(headers))
@@ -56,7 +58,7 @@ func newFactory[T any](headers []string, options Options) (*structFactory[T], er
 		factory.columnValues[i] = fieldV.Interface()
 
 		v, ok := fieldT.Tag.Lookup(FieldTag)
-		if !ok && options.Strict {
+		if !ok && options.ErrorIfTaglessField {
 			return nil, fmt.Errorf("field %q breaks strict mode: %w", fieldT.Name, ErrTaglessField)
 		}
 
@@ -111,6 +113,10 @@ func (s *structFactory[T]) unmarshal(record []string) (T, error) {
 	for i, column := range record {
 		mappedIndex, found := s.columnMap[i]
 		if !found {
+			continue
+		}
+
+		if column == "" && s.options.UnmarshalIgnoreEmpty {
 			continue
 		}
 
