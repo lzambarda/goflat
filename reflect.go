@@ -19,7 +19,7 @@ type structFactory[T any] struct {
 // work with them.
 const FieldTag = "flat"
 
-//nolint:varnamelen // Fine-ish here.
+//nolint:varnamelen,cyclop // Fine-ish here.
 func newFactory[T any](headers []string, options Options) (*structFactory[T], error) {
 	var v T
 
@@ -28,6 +28,7 @@ func newFactory[T any](headers []string, options Options) (*structFactory[T], er
 
 	pointer := false
 
+	//nolint:exhaustive // Fine here, there's a default.
 	switch t.Kind() {
 	case reflect.Struct:
 	case reflect.Pointer:
