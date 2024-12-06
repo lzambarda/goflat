@@ -9,6 +9,7 @@ import (
 
 type structFactory[T any] struct {
 	structType   reflect.Type
+	pointer      bool
 	columnMap    map[int]int
 	columnValues []any
 	columnNames  []string
@@ -18,30 +19,35 @@ type structFactory[T any] struct {
 // work with them.
 const FieldTag = "flat"
 
-//nolint:varnamelen // Fine-ish here.
+//nolint:varnamelen,cyclop // Fine-ish here.
 func newFactory[T any](headers []string, options Options) (*structFactory[T], error) {
 	var v T
 
 	t := reflect.TypeOf(v)
+	rv := reflect.ValueOf(v)
 
-	if t.Kind() == reflect.Pointer {
+	pointer := false
+
+	//nolint:exhaustive // Fine here, there's a default.
+	switch t.Kind() {
+	case reflect.Struct:
+	case reflect.Pointer:
+		pointer = true
 		t = t.Elem()
-	}
-
-	if t.Kind() != reflect.Struct {
+		rv = reflect.New(t).Elem()
+	default:
 		return nil, fmt.Errorf("type %T: %w", v, ErrNotAStruct)
 	}
 
 	factory := &structFactory[T]{
 		structType:   t,
+		pointer:      pointer,
 		columnMap:    make(map[int]int, len(headers)),
 		columnValues: make([]any, t.NumField()),
 		columnNames:  make([]string, t.NumField()),
 	}
 
 	covered := make([]bool, len(headers))
-
-	rv := reflect.ValueOf(v)
 
 	for i := range t.NumField() {
 		fieldT := t.Field(i)
@@ -163,6 +169,10 @@ func (s *structFactory[T]) unmarshal(record []string) (T, error) {
 		newStruct.Field(mappedIndex).Set(reflect.ValueOf(value))
 	}
 
+	if s.pointer {
+		newStruct = newStruct.Addr()
+	}
+
 	return newStruct.Interface().(T), nil
 }
 
@@ -182,6 +192,10 @@ func (s *structFactory[T]) marshalHeaders() []string {
 
 func (s *structFactory[T]) marshal(t T, separator string) ([]string, error) {
 	reflectValue := reflect.ValueOf(t)
+
+	if s.pointer {
+		reflectValue = reflectValue.Elem()
+	}
 
 	record := make([]string, 0, len(s.columnNames))
 
