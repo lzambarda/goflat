@@ -10,25 +10,6 @@ import (
 	"golang.org/x/sync/errgroup"
 )
 
-// Options is used to configure the marshalling and unmarshalling processes.
-type Options struct {
-	headersFromStruct bool
-	// ErrorIfTaglessField causes goflat to error out if any struct field is
-	// missing the `flat` tag.
-	ErrorIfTaglessField bool
-	// ErrorIfDuplicateHeaders causes goflat to error out if two struct fields
-	// share the same `flat` tag value.
-	ErrorIfDuplicateHeaders bool
-	// ErrorIfMissingHeaders causes goflat to error out at unmarshalling time if
-	// a header has no struct field with a corresponding `flat` tag.
-	ErrorIfMissingHeaders bool
-	// UnmarshalIgnoreEmpty causes the unmarshaller to skip any column which is
-	// an empty string. This is useful for instance if you have integer values
-	// and you are okay with empty string mapping to the zero value (0). For the
-	// same reason this will cause booleans to be false if the column is empty.
-	UnmarshalIgnoreEmpty bool
-}
-
 // Unmarshaller can be used to tell goflat to use custom logic to convert the
 // input string into the type itself.
 type Unmarshaller interface {
@@ -102,4 +83,32 @@ func UnmarshalToSlice[T any](ctx context.Context, reader *csv.Reader, opts Optio
 	}
 
 	return slice, nil
+}
+
+// UnmarshalToCallback unamrshals a CSV file invoking a callback function on
+// each row.
+func UnmarshalToCallback[T any](ctx context.Context, reader *csv.Reader, opts Options, callback func(T) error) error {
+	g, ctx := errgroup.WithContext(ctx) //nolint:varnamelen // Fine here.
+
+	ch := make(chan T) //nolint:varnamelen // Fine here.
+
+	g.Go(func() error {
+		for v := range ch {
+			if err := callback(v); err != nil {
+				return fmt.Errorf("callback: %w", err)
+			}
+		}
+
+		return nil
+	})
+
+	g.Go(func() error {
+		return UnmarshalToChannel(ctx, reader, opts, ch)
+	})
+
+	if err := g.Wait(); err != nil {
+		return fmt.Errorf("wait: %w", err)
+	}
+
+	return nil
 }

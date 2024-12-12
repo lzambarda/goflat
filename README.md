@@ -12,11 +12,14 @@ type Record struct {
     Height float32   `flat:"-"` // ignored
 }
 
-ch := make(chan Record)
+...
+
+goflat.MarshalSliceToWriter[Record](ctx,inputCh,csvWriter,options)
 
 ...
 
-goflat.MarshalSliceToWriter[Record](ctx,ch,csvWriter,options)
+goflat.UnmarshalToChan[Record](ctx,csvReader,options,outputCh)
+
 ```
 
 Will result in:

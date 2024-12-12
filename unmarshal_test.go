@@ -4,7 +4,6 @@ import (
 	"context"
 	"embed"
 	"testing"
-	"time"
 
 	"github.com/google/go-cmp/cmp"
 
@@ -12,14 +11,16 @@ import (
 )
 
 func TestUnmarshal(t *testing.T) {
-	t.Run("error empty", testUnmarshalErrorEmpty)
+	t.Run("error", testUnmarshalError)
 	t.Run("success", testUnmarshalSuccess)
-	t.Run("success ignore empty", testUnmarshalSuccessIgnoreEmpty)
-	t.Run("success pointer", testUnmarshalSuccessPointer)
 }
 
 //go:embed testdata
 var testdata embed.FS
+
+func testUnmarshalError(t *testing.T) {
+	t.Run("empty", testUnmarshalErrorEmpty)
+}
 
 func testUnmarshalErrorEmpty(t *testing.T) {
 	file, err := testdata.Open("testdata/unmarshal/success empty.csv")
@@ -57,6 +58,14 @@ func testUnmarshalErrorEmpty(t *testing.T) {
 }
 
 func testUnmarshalSuccess(t *testing.T) {
+	t.Run("full", testUnmarshalSuccessFull)
+	t.Run("ignore empty", testUnmarshalSuccessIgnoreEmpty)
+	t.Run("pointer", testUnmarshalSuccessPointer)
+	t.Run("slice", testUnmarshalSuccessSlice)
+	t.Run("callback", testUnmarshalSuccessCallback)
+}
+
+func testUnmarshalSuccessFull(t *testing.T) {
 	file, err := testdata.Open("testdata/unmarshal/success.csv")
 	if err != nil {
 		t.Fatalf("open test file: %v", err)
@@ -225,34 +234,122 @@ func testUnmarshalSuccessPointer(t *testing.T) {
 	}
 }
 
-func assertChannel[T any](t *testing.T, ch <-chan T, expected []T, cmpOpts ...cmp.Option) {
-	t.Helper()
+func testUnmarshalSuccessSlice(t *testing.T) {
+	file, err := testdata.Open("testdata/unmarshal/success.csv")
+	if err != nil {
+		t.Fatalf("open test file: %v", err)
+	}
 
-	ctx, cancel := context.WithTimeout(context.Background(), time.Second*5)
-	var got []T
+	type record struct {
+		FirstName string  `flat:"first_name"`
+		LastName  string  `flat:"last_name"`
+		Age       int     `flat:"age"`
+		Height    float32 `flat:"height"`
+	}
 
-	go func() {
-		defer cancel()
+	expected := []record{
+		{
+			FirstName: "Guybrush",
+			LastName:  "Threepwood",
+			Age:       28,
+			Height:    1.78,
+		},
+		{
+			FirstName: "Elaine",
+			LastName:  "Marley",
+			Age:       20,
+			Height:    1.6,
+		},
+		{
+			FirstName: "LeChuck",
+			LastName:  "",
+			Age:       100,
+			Height:    2.01,
+		},
+	}
 
-		for {
-			select {
-			case <-ctx.Done():
-				return
-			case v, ok := <-ch:
-				if !ok {
-					return
-				}
+	ctx := context.Background()
 
-				got = append(got, v)
-			}
-		}
-	}()
+	csvReader, err := goflat.DetectReader(file)
+	if err != nil {
+		t.Fatalf("detect reader: %v", err)
+	}
 
-	t.Cleanup(func() {
-		<-ctx.Done()
+	options := goflat.Options{
+		ErrorIfTaglessField:     true,
+		ErrorIfDuplicateHeaders: true,
+		ErrorIfMissingHeaders:   true,
+	}
 
-		if diff := cmp.Diff(expected, got, cmpOpts...); diff != "" {
-			t.Errorf("(-expected,+got):\n%s", diff)
-		}
+	got, err := goflat.UnmarshalToSlice[record](ctx, csvReader, options)
+	if err != nil {
+		t.Fatalf("unmarshal: %v", err)
+	}
+
+	if diff := cmp.Diff(expected, got, cmp.AllowUnexported(record{})); diff != "" {
+		t.Errorf("(-expected,+got):\n%s", diff)
+	}
+}
+
+func testUnmarshalSuccessCallback(t *testing.T) {
+	file, err := testdata.Open("testdata/unmarshal/success.csv")
+	if err != nil {
+		t.Fatalf("open test file: %v", err)
+	}
+
+	type record struct {
+		FirstName string  `flat:"first_name"`
+		LastName  string  `flat:"last_name"`
+		Age       int     `flat:"age"`
+		Height    float32 `flat:"height"`
+	}
+
+	expected := []record{
+		{
+			FirstName: "Guybrush",
+			LastName:  "Threepwood",
+			Age:       28,
+			Height:    1.78,
+		},
+		{
+			FirstName: "Elaine",
+			LastName:  "Marley",
+			Age:       20,
+			Height:    1.6,
+		},
+		{
+			FirstName: "LeChuck",
+			LastName:  "",
+			Age:       100,
+			Height:    2.01,
+		},
+	}
+
+	ctx := context.Background()
+
+	csvReader, err := goflat.DetectReader(file)
+	if err != nil {
+		t.Fatalf("detect reader: %v", err)
+	}
+
+	options := goflat.Options{
+		ErrorIfTaglessField:     true,
+		ErrorIfDuplicateHeaders: true,
+		ErrorIfMissingHeaders:   true,
+	}
+
+	var got []record
+
+	err = goflat.UnmarshalToCallback(ctx, csvReader, options, func(r record) error {
+		got = append(got, r)
+
+		return nil
 	})
+	if err != nil {
+		t.Fatalf("unmarshal: %v", err)
+	}
+
+	if diff := cmp.Diff(expected, got, cmp.AllowUnexported(record{})); diff != "" {
+		t.Errorf("(-expected,+got):\n%s", diff)
+	}
 }

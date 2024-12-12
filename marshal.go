@@ -53,7 +53,7 @@ func MarshalChannelToWriter[T any](ctx context.Context, inputCh <-chan T, writer
 
 		select {
 		case <-ctx.Done():
-			return ctx.Err() //nolint:wrapcheck // No need here.
+			return context.Cause(ctx) //nolint:wrapcheck // Fine here.
 		case value, channelHasValue = <-inputCh:
 		}
 
