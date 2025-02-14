@@ -46,17 +46,32 @@ func testMarshalSuccess(t *testing.T) {
 			Height:    1.65,
 		},
 	}
-	var got bytes.Buffer
 
-	writer := csv.NewWriter(&got)
-
-	err = goflat.MarshalSliceToWriter(context.Background(), input, writer, goflat.Options{})
-	if err != nil {
-		t.Fatalf("marshal: %v", err)
+	tcs := map[string]goflat.Options{
+		"simple": {},
+		"strict": {
+			ErrorIfTaglessField:     true,
+			ErrorIfDuplicateHeaders: true,
+			ErrorIfMissingHeaders:   true,
+			UnmarshalIgnoreEmpty:    true,
+		},
 	}
 
-	if diff := cmp.Diff(string(expected), got.String()); diff != "" {
-		t.Errorf("(-expected, +got):\n%s", diff)
+	for name, options := range tcs {
+		t.Run(name, func(t *testing.T) {
+			var got bytes.Buffer
+
+			writer := csv.NewWriter(&got)
+
+			err = goflat.MarshalSliceToWriter(context.Background(), input, writer, options)
+			if err != nil {
+				t.Fatalf("marshal: %v", err)
+			}
+
+			if diff := cmp.Diff(string(expected), got.String()); diff != "" {
+				t.Errorf("(-expected, +got):\n%s", diff)
+			}
+		})
 	}
 }
 

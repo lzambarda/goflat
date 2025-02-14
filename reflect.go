@@ -87,6 +87,10 @@ func newFactory[T any](headers []string, options Options) (*structFactory[T], er
 
 		factory.columnNames[i] = v
 
+		if options.headersFromStruct {
+			continue
+		}
+
 		handledAt := -1
 
 		for j, header := range headers {
