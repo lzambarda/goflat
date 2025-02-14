@@ -18,7 +18,7 @@ type Unmarshaller interface {
 
 // UnmarshalToChannel unmarshals a CSV file to a channel of structs. It
 // automatically closes the channel at the end.
-func UnmarshalToChannel[T any](ctx context.Context, reader *csv.Reader, opts Options, outputCh chan<- T) error {
+func UnmarshalToChannel[T any](ctx context.Context, reader *csv.Reader, outputCh chan<- T, opts Options) error {
 	defer close(outputCh)
 
 	headers, err := reader.Read()
@@ -75,7 +75,7 @@ func UnmarshalToSlice[T any](ctx context.Context, reader *csv.Reader, opts Optio
 	})
 
 	g.Go(func() error {
-		return UnmarshalToChannel(ctx, reader, opts, ch)
+		return UnmarshalToChannel(ctx, reader, ch, opts)
 	})
 
 	if err := g.Wait(); err != nil {
@@ -103,7 +103,7 @@ func UnmarshalToCallback[T any](ctx context.Context, reader *csv.Reader, opts Op
 	})
 
 	g.Go(func() error {
-		return UnmarshalToChannel(ctx, reader, opts, ch)
+		return UnmarshalToChannel(ctx, reader, ch, opts)
 	})
 
 	if err := g.Wait(); err != nil {
