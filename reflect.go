@@ -39,7 +39,7 @@ type structFactory[T any] struct {
 // work with them.
 const FieldTag = "flat"
 
-//nolint:varnamelen,cyclop // Fine-ish here.
+//nolint:varnamelen,cyclop,gocyclo // Fine-ish here.
 func newFactory[T any](headers []string, options Options) (*structFactory[T], error) {
 	var v T
 
