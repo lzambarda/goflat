@@ -51,7 +51,7 @@ func testUnmarshalErrorEmpty(t *testing.T) {
 		ErrorIfMissingHeaders:   true,
 	}
 
-	err = goflat.UnmarshalToChannel(ctx, csvReader, options, channel)
+	err = goflat.UnmarshalToChannel(ctx, csvReader, channel, options)
 	if err == nil {
 		t.Fatalf("expected error, got nil")
 	}
@@ -115,7 +115,7 @@ func testUnmarshalSuccessFull(t *testing.T) {
 		ErrorIfMissingHeaders:   true,
 	}
 
-	err = goflat.UnmarshalToChannel(ctx, csvReader, options, channel)
+	err = goflat.UnmarshalToChannel(ctx, csvReader, channel, options)
 	if err != nil {
 		t.Fatalf("unmarshal: %v", err)
 	}
@@ -172,7 +172,7 @@ func testUnmarshalSuccessIgnoreEmpty(t *testing.T) {
 		UnmarshalIgnoreEmpty:    true,
 	}
 
-	err = goflat.UnmarshalToChannel(ctx, csvReader, options, channel)
+	err = goflat.UnmarshalToChannel(ctx, csvReader, channel, options)
 	if err != nil {
 		t.Fatalf("unmarshal: %v", err)
 	}
@@ -228,7 +228,7 @@ func testUnmarshalSuccessPointer(t *testing.T) {
 		ErrorIfMissingHeaders:   true,
 	}
 
-	err = goflat.UnmarshalToChannel(ctx, csvReader, options, channel)
+	err = goflat.UnmarshalToChannel(ctx, csvReader, channel, options)
 	if err != nil {
 		t.Fatalf("unmarshal: %v", err)
 	}
