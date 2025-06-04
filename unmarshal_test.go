@@ -1,7 +1,6 @@
 package goflat_test
 
 import (
-	"context"
 	"embed"
 	"testing"
 
@@ -38,7 +37,7 @@ func testUnmarshalErrorEmpty(t *testing.T) {
 	channel := make(chan record)
 	assertChannel(t, channel, nil, cmp.AllowUnexported(record{}))
 
-	ctx := context.Background()
+	ctx := t.Context()
 
 	csvReader, err := goflat.DetectReader(file)
 	if err != nil {
@@ -102,7 +101,7 @@ func testUnmarshalSuccessFull(t *testing.T) {
 	channel := make(chan record)
 	assertChannel(t, channel, expected, cmp.AllowUnexported(record{}))
 
-	ctx := context.Background()
+	ctx := t.Context()
 
 	csvReader, err := goflat.DetectReader(file)
 	if err != nil {
@@ -158,8 +157,6 @@ func testUnmarshalSuccessIgnoreEmpty(t *testing.T) {
 	channel := make(chan record)
 	assertChannel(t, channel, expected, cmp.AllowUnexported(record{}))
 
-	ctx := context.Background()
-
 	csvReader, err := goflat.DetectReader(file)
 	if err != nil {
 		t.Fatalf("detect reader: %v", err)
@@ -172,7 +169,7 @@ func testUnmarshalSuccessIgnoreEmpty(t *testing.T) {
 		UnmarshalIgnoreEmpty:    true,
 	}
 
-	err = goflat.UnmarshalToChannel(ctx, csvReader, channel, options)
+	err = goflat.UnmarshalToChannel(t.Context(), csvReader, channel, options)
 	if err != nil {
 		t.Fatalf("unmarshal: %v", err)
 	}
@@ -215,7 +212,7 @@ func testUnmarshalSuccessPointer(t *testing.T) {
 	channel := make(chan *record)
 	assertChannel(t, channel, expected, cmp.AllowUnexported(record{}))
 
-	ctx := context.Background()
+	ctx := t.Context()
 
 	csvReader, err := goflat.DetectReader(file)
 	if err != nil {
@@ -268,7 +265,7 @@ func testUnmarshalSuccessSlice(t *testing.T) {
 		},
 	}
 
-	ctx := context.Background()
+	ctx := t.Context()
 
 	csvReader, err := goflat.DetectReader(file)
 	if err != nil {
@@ -325,7 +322,7 @@ func testUnmarshalSuccessCallback(t *testing.T) {
 		},
 	}
 
-	ctx := context.Background()
+	ctx := t.Context()
 
 	csvReader, err := goflat.DetectReader(file)
 	if err != nil {

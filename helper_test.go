@@ -11,7 +11,7 @@ import (
 func assertChannel[T any](t *testing.T, ch <-chan T, expected []T, cmpOpts ...cmp.Option) {
 	t.Helper()
 
-	ctx, cancel := context.WithTimeout(context.Background(), time.Second*5)
+	ctx, cancel := context.WithTimeout(context.Background(), time.Second*5) //nolint // Cannot be t.Context() or will have race conditions
 	var got []T
 
 	go func() {

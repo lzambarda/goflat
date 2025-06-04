@@ -2,7 +2,6 @@ package goflat_test
 
 import (
 	"bytes"
-	"context"
 	"encoding/csv"
 	"testing"
 
@@ -63,7 +62,7 @@ func testMarshalSuccess(t *testing.T) {
 
 			writer := csv.NewWriter(&got)
 
-			err = goflat.MarshalSliceToWriter(context.Background(), input, writer, options)
+			err = goflat.MarshalSliceToWriter(t.Context(), input, writer, options)
 			if err != nil {
 				t.Fatalf("marshal: %v", err)
 			}
@@ -109,7 +108,7 @@ func testMarshalSuccessPointer(t *testing.T) {
 
 	writer := csv.NewWriter(&got)
 
-	err = goflat.MarshalSliceToWriter(context.Background(), input, writer, goflat.Options{})
+	err = goflat.MarshalSliceToWriter(t.Context(), input, writer, goflat.Options{})
 	if err != nil {
 		t.Fatalf("marshal: %v", err)
 	}
