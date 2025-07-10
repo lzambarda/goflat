@@ -129,10 +129,13 @@ func (s *structFactory[T]) unmarshal(record []string) (T, error) {
 
 	newStruct := reflect.New(s.structType).Elem()
 
-	var value any
-	var err error
+	var (
+		value any
+		err   error
+	)
 
 	//nolint:varnamelen // Fine here.
+
 	for i, column := range record {
 		mappedIndex, found := s.columnMap[i]
 		if !found {
@@ -186,6 +189,8 @@ func (s *structFactory[T]) unmarshal(record []string) (T, error) {
 				value, err = strconv.ParseFloat(column, 64)
 			case string:
 				value = column
+			case *string: // cannot represent nil with the string
+				value = &column
 			default:
 				return zero, fmt.Errorf("type %T: %w", columnBaseValue, ErrUnsupportedType)
 			}
@@ -228,25 +233,21 @@ func (s *structFactory[T]) marshal(t T, separator string) ([]string, error) {
 
 	record := make([]string, 0, len(s.columnNames))
 
-	var strValue string
-	var err error
+	var (
+		strValue string
+		err      error
+	)
 
 	//nolint:varnamelen // Fine here.
+
 	for i, name := range s.columnNames {
 		if name == "" {
 			continue
 		}
 
-		fieldV := reflectValue.Field(i)
-
-		// special case
-		if m, ok := fieldV.Interface().(Marshaller); ok {
-			strValue, err = m.Marshal()
-			if err != nil {
-				return nil, fmt.Errorf("marshal column %d: %w", i, err)
-			}
-		} else {
-			strValue = fmt.Sprintf("%v", fieldV.Interface())
+		strValue, err = reflectValueToStr(reflectValue.Field(i))
+		if err != nil {
+			return nil, fmt.Errorf("column %d: %w", i, err)
 		}
 
 		strValue = strings.ReplaceAll(strValue, separator, "\\"+separator)
@@ -257,4 +258,29 @@ func (s *structFactory[T]) marshal(t T, separator string) ([]string, error) {
 	record = record[0:len(record):len(record)]
 
 	return record, nil
+}
+
+func reflectValueToStr(value reflect.Value) (string, error) {
+	const nilStrValue = "nil"
+
+	// Handle pointer values
+	if value.Kind() == reflect.Pointer {
+		if value.IsNil() {
+			return nilStrValue, nil
+		}
+
+		value = value.Elem()
+	}
+
+	if m, ok := value.Interface().(Marshaller); ok {
+		// Custom marshaller special case
+		strValue, err := m.Marshal()
+		if err != nil {
+			return "", fmt.Errorf("marshal: %w", err)
+		}
+
+		return strValue, nil
+	}
+
+	return fmt.Sprintf("%v", value.Interface()), nil
 }

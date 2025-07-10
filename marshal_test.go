@@ -22,27 +22,38 @@ func testMarshalSuccess(t *testing.T) {
 	}
 
 	type record struct {
-		FirstName string  `flat:"first_name"`
-		LastName  string  `flat:"last_name"`
-		Ignore    uint8   `flat:"-"`
-		Age       int     `flat:"age"`
-		Height    float32 `flat:"height"`
+		FirstName    string  `flat:"first_name"`
+		LastName     string  `flat:"last_name"`
+		Ignore       uint8   `flat:"-"`
+		Age          int     `flat:"age"`
+		Height       float32 `flat:"height"`
+		OptionalName *string `flat:"optional_name"`
 	}
 
 	input := []record{
 		{
-			FirstName: "John",
-			LastName:  "Doe",
-			Ignore:    123,
-			Age:       30,
-			Height:    1.75,
+			FirstName:    "John",
+			LastName:     "Doe",
+			Ignore:       123,
+			Age:          30,
+			Height:       1.75,
+			OptionalName: nil,
 		},
 		{
-			FirstName: "Jane",
-			LastName:  "Doe",
-			Ignore:    123,
-			Age:       25,
-			Height:    1.65,
+			FirstName:    "Jane",
+			LastName:     "Doe",
+			Ignore:       123,
+			Age:          25,
+			Height:       1.65,
+			OptionalName: strPtr(""),
+		},
+		{
+			FirstName:    "John",
+			LastName:     "Smith",
+			Ignore:       123,
+			Age:          40,
+			Height:       2.00,
+			OptionalName: strPtr("Secret"),
 		},
 	}
 
@@ -81,29 +92,41 @@ func testMarshalSuccessPointer(t *testing.T) {
 	}
 
 	type record struct {
-		FirstName string  `flat:"first_name"`
-		LastName  string  `flat:"last_name"`
-		Ignore    uint8   `flat:"-"`
-		Age       int     `flat:"age"`
-		Height    float32 `flat:"height"`
+		FirstName    string  `flat:"first_name"`
+		LastName     string  `flat:"last_name"`
+		Ignore       uint8   `flat:"-"`
+		Age          int     `flat:"age"`
+		Height       float32 `flat:"height"`
+		OptionalName *string `flat:"optional_name"`
 	}
 
 	input := []*record{
 		{
-			FirstName: "John",
-			LastName:  "Doe",
-			Ignore:    123,
-			Age:       30,
-			Height:    1.75,
+			FirstName:    "John",
+			LastName:     "Doe",
+			Ignore:       123,
+			Age:          30,
+			Height:       1.75,
+			OptionalName: nil,
 		},
 		{
-			FirstName: "Jane",
-			LastName:  "Doe",
-			Ignore:    123,
-			Age:       25,
-			Height:    1.65,
+			FirstName:    "Jane",
+			LastName:     "Doe",
+			Ignore:       123,
+			Age:          25,
+			Height:       1.65,
+			OptionalName: strPtr(""),
+		},
+		{
+			FirstName:    "John",
+			LastName:     "Smith",
+			Ignore:       123,
+			Age:          40,
+			Height:       2.00,
+			OptionalName: strPtr("Secret"),
 		},
 	}
+
 	var got bytes.Buffer
 
 	writer := csv.NewWriter(&got)

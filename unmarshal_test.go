@@ -29,7 +29,7 @@ func testUnmarshalErrorEmpty(t *testing.T) {
 
 	type record struct {
 		FirstName string  `flat:"first_name"`
-		LastName  string  `flat:"last_name"`
+		LastName  *string `flat:"last_name"`
 		Age       int     `flat:"age"`
 		Height    float32 `flat:"height"`
 	}

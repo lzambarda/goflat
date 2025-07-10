@@ -78,7 +78,8 @@ func UnmarshalToSlice[T any](ctx context.Context, reader *csv.Reader, opts Optio
 		return UnmarshalToChannel(ctx, reader, ch, opts)
 	})
 
-	if err := g.Wait(); err != nil {
+	err := g.Wait()
+	if err != nil {
 		return nil, fmt.Errorf("wait: %w", err)
 	}
 
@@ -94,7 +95,8 @@ func UnmarshalToCallback[T any](ctx context.Context, reader *csv.Reader, opts Op
 
 	g.Go(func() error {
 		for v := range ch {
-			if err := callback(v); err != nil {
+			err := callback(v)
+			if err != nil {
 				return fmt.Errorf("callback: %w", err)
 			}
 		}
@@ -106,7 +108,8 @@ func UnmarshalToCallback[T any](ctx context.Context, reader *csv.Reader, opts Op
 		return UnmarshalToChannel(ctx, reader, ch, opts)
 	})
 
-	if err := g.Wait(); err != nil {
+	err := g.Wait()
+	if err != nil {
 		return fmt.Errorf("wait: %w", err)
 	}
 
