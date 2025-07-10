@@ -123,7 +123,7 @@ func newFactory[T any](headers []string, options Options) (*structFactory[T], er
 	return factory, nil
 }
 
-//nolint:forcetypeassert,gocyclo,cyclop,ireturn // Fine for now.
+//nolint:forcetypeassert,gocyclo,cyclop,ireturn,varnamelen // Fine for now.
 func (s *structFactory[T]) unmarshal(record []string) (T, error) {
 	var zero T
 
