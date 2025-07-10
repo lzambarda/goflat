@@ -8,10 +8,15 @@ import (
 	"github.com/google/go-cmp/cmp"
 )
 
+func strPtr(s string) *string {
+	return &s
+}
+
 func assertChannel[T any](t *testing.T, ch <-chan T, expected []T, cmpOpts ...cmp.Option) {
 	t.Helper()
 
-	ctx, cancel := context.WithTimeout(context.Background(), time.Second*5) //nolint // Cannot be t.Context() or will have race conditions
+	ctx, cancel := context.WithTimeout(context.Background(), time.Second*5)
+
 	var got []T
 
 	go func() {

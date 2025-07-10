@@ -42,8 +42,10 @@ func DetectReader(reader io.Reader) (*csv.Reader, error) {
 		return nil, fmt.Errorf("read first line: %w", err)
 	}
 
-	var bestSeparator string
-	var bestCount int
+	var (
+		bestSeparator string
+		bestCount     int
+	)
 
 	for _, sep := range commonSeparators {
 		count := strings.Count(headers, sep)

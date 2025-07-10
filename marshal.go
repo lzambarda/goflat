@@ -45,8 +45,10 @@ func MarshalChannelToWriter[T any](ctx context.Context, inputCh <-chan T, writer
 		return fmt.Errorf("write headers: %w", err)
 	}
 
-	var currentLine int
-	var value T
+	var (
+		currentLine int
+		value       T
+	)
 
 	for {
 		var channelHasValue bool
@@ -76,7 +78,8 @@ func MarshalChannelToWriter[T any](ctx context.Context, inputCh <-chan T, writer
 
 	writer.Flush()
 
-	if err = writer.Error(); err != nil {
+	err = writer.Error()
+	if err != nil {
 		return fmt.Errorf("flush: %w", err)
 	}
 
