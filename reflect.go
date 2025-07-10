@@ -239,7 +239,6 @@ func (s *structFactory[T]) marshal(t T, separator string) ([]string, error) {
 	)
 
 	//nolint:varnamelen // Fine here.
-
 	for i, name := range s.columnNames {
 		if name == "" {
 			continue
