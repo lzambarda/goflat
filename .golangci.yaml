@@ -11,6 +11,7 @@ linters:
     - exhaustruct
     - nonamedreturns
     - paralleltest
+    - noinlineerr # Seriously some people are purists
   settings:
     cyclop:
       max-complexity: 15
