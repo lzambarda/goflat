@@ -45,7 +45,7 @@ func testMarshalSuccess(t *testing.T) {
 			Ignore:       123,
 			Age:          25,
 			Height:       1.65,
-			OptionalName: strPtr(""),
+			OptionalName: ptrTo(""),
 		},
 		{
 			FirstName:    "John",
@@ -53,7 +53,7 @@ func testMarshalSuccess(t *testing.T) {
 			Ignore:       123,
 			Age:          40,
 			Height:       2.00,
-			OptionalName: strPtr("Secret"),
+			OptionalName: ptrTo("Secret"),
 		},
 	}
 
@@ -115,7 +115,7 @@ func testMarshalSuccessPointer(t *testing.T) {
 			Ignore:       123,
 			Age:          25,
 			Height:       1.65,
-			OptionalName: strPtr(""),
+			OptionalName: ptrTo(""),
 		},
 		{
 			FirstName:    "John",
@@ -123,7 +123,7 @@ func testMarshalSuccessPointer(t *testing.T) {
 			Ignore:       123,
 			Age:          40,
 			Height:       2.00,
-			OptionalName: strPtr("Secret"),
+			OptionalName: ptrTo("Secret"),
 		},
 	}
 

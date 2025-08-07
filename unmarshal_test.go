@@ -1,7 +1,9 @@
 package goflat_test
 
 import (
+	"bytes"
 	"embed"
+	"encoding/csv"
 	"testing"
 
 	"github.com/google/go-cmp/cmp"
@@ -12,6 +14,7 @@ import (
 func TestUnmarshal(t *testing.T) {
 	t.Run("error", testUnmarshalError)
 	t.Run("success", testUnmarshalSuccess)
+	t.Run("type", testUnmarshalType)
 }
 
 //go:embed testdata
@@ -347,6 +350,35 @@ func testUnmarshalSuccessCallback(t *testing.T) {
 	}
 
 	if diff := cmp.Diff(expected, got, cmp.AllowUnexported(record{})); diff != "" {
+		t.Errorf("(-expected,+got):\n%s", diff)
+	}
+}
+
+func testUnmarshalType(t *testing.T) {
+	t.Run("int64 slice", testUnmarshalTypeInt64Slice)
+}
+
+func testUnmarshalTypeInt64Slice(t *testing.T) {
+	type record struct {
+		Value []int64 `flat:"VALUE"`
+	}
+
+	input := `VALUE
+"{1,2,3}"`
+
+	expected := []record{{Value: []int64{1, 2, 3}}}
+
+	got, err := goflat.UnmarshalToSlice[record](t.Context(), csv.NewReader(bytes.NewBufferString(input)), goflat.Options{
+		ErrorIfTaglessField:     true,
+		ErrorIfDuplicateHeaders: true,
+		ErrorIfMissingHeaders:   true,
+		UnmarshalIgnoreEmpty:    true,
+	})
+	if err != nil {
+		t.Errorf("unmarshal to slice: %v", err)
+	}
+
+	if diff := cmp.Diff(expected, got); diff != "" {
 		t.Errorf("(-expected,+got):\n%s", diff)
 	}
 }
