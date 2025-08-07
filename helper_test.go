@@ -8,8 +8,8 @@ import (
 	"github.com/google/go-cmp/cmp"
 )
 
-func strPtr(s string) *string {
-	return &s
+func ptrTo[T any](v T) *T {
+	return &v
 }
 
 func assertChannel[T any](t *testing.T, ch <-chan T, expected []T, cmpOpts ...cmp.Option) {

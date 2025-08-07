@@ -27,12 +27,17 @@ type Options struct {
 }
 
 type structFactory[T any] struct {
-	structType   reflect.Type
-	pointer      bool
-	columnMap    map[int]int
-	columnValues []any
-	columnNames  []string
-	options      Options
+	structType reflect.Type
+	pointer    bool
+	columnMap  map[int]int
+	columns    []*columnDescriptor
+	options    Options
+}
+
+type columnDescriptor struct {
+	name        string
+	value       any
+	reflectType reflect.Type
 }
 
 // FieldTag is the tag that must be used in the struct fields so that goflat can
@@ -60,12 +65,11 @@ func newFactory[T any](headers []string, options Options) (*structFactory[T], er
 	}
 
 	factory := &structFactory[T]{
-		structType:   t,
-		pointer:      pointer,
-		columnMap:    make(map[int]int, len(headers)),
-		columnValues: make([]any, t.NumField()),
-		columnNames:  make([]string, t.NumField()),
-		options:      options,
+		structType: t,
+		pointer:    pointer,
+		columnMap:  make(map[int]int, len(headers)),
+		columns:    make([]*columnDescriptor, t.NumField()),
+		options:    options,
 	}
 
 	covered := make([]bool, len(headers))
@@ -74,18 +78,30 @@ func newFactory[T any](headers []string, options Options) (*structFactory[T], er
 		fieldT := t.Field(i)
 		fieldV := rv.Field(i)
 
-		factory.columnValues[i] = fieldV.Interface()
-
 		v, ok := fieldT.Tag.Lookup(FieldTag)
 		if !ok && options.ErrorIfTaglessField {
 			return nil, fmt.Errorf("field %q breaks strict mode: %w", fieldT.Name, ErrTaglessField)
 		}
 
-		if v == "" || v == "-" {
-			continue
+		factory.columns[i] = &columnDescriptor{
+			name:        v,
+			value:       fieldV.Interface(),
+			reflectType: fieldT.Type,
 		}
 
-		factory.columnNames[i] = v
+		//nolint:exhaustive // Fine here.
+		switch fieldT.Type.Kind() {
+		case reflect.Slice:
+			factory.columns[i].value = reflect.New(fieldV.Type().Elem()).Elem().Interface()
+		case reflect.Pointer:
+			factory.columns[i].value = reflect.Zero(fieldV.Type().Elem()).Interface()
+		}
+
+		if v == "" || v == "-" {
+			factory.columns[i].name = ""
+
+			continue
+		}
 
 		if options.headersFromStruct {
 			continue
@@ -123,18 +139,11 @@ func newFactory[T any](headers []string, options Options) (*structFactory[T], er
 	return factory, nil
 }
 
-//nolint:forcetypeassert,gocyclo,cyclop,ireturn,varnamelen // Fine for now.
+//nolint:varnamelen,ireturn // Fine for now.
 func (s *structFactory[T]) unmarshal(record []string) (T, error) {
 	var zero T
 
 	newStruct := reflect.New(s.structType).Elem()
-
-	var (
-		value any
-		err   error
-	)
-
-	//nolint:varnamelen // Fine here.
 
 	for i, column := range record {
 		mappedIndex, found := s.columnMap[i]
@@ -146,58 +155,15 @@ func (s *structFactory[T]) unmarshal(record []string) (T, error) {
 			continue
 		}
 
-		columnBaseValue := s.columnValues[mappedIndex]
+		columnDescriptor := s.columns[mappedIndex]
 
-		// special case
-		if u, ok := columnBaseValue.(Unmarshaller); ok {
-			value, err = u.Unmarshal(column)
-		} else {
-			switch columnBaseValue.(type) {
-			case bool:
-				value, err = strconv.ParseBool(column)
-			case int:
-				value, err = strconv.Atoi(column)
-			case int8:
-				value, err = strconv.ParseInt(column, 10, 8)
-				value = int8(value.(int64)) //nolint:gosec // Safe.
-			case int16:
-				value, err = strconv.ParseInt(column, 10, 16)
-				value = uint16(value.(int64)) //nolint:gosec // Safe.
-			case int32:
-				value, err = strconv.ParseInt(column, 10, 32)
-				value = int32(value.(int64)) //nolint:gosec // Safe.
-			case int64:
-				value, err = strconv.ParseInt(column, 10, 64)
-			case uint:
-				value, err = strconv.Atoi(column)
-				value = uint(value.(int)) //nolint:gosec // Safe.
-			case uint8: // aka byte
-				value, err = strconv.ParseUint(column, 10, 8)
-				value = uint8(value.(uint64)) //nolint:gosec // Safe.
-			case uint16:
-				value, err = strconv.ParseUint(column, 10, 16)
-				value = uint16(value.(uint64)) //nolint:gosec // Safe.
-			case uint32:
-				value, err = strconv.ParseUint(column, 10, 32)
-				value = uint32(value.(uint64)) //nolint:gosec // Safe.
-			case uint64:
-				value, err = strconv.ParseUint(column, 10, 64)
-			case float32:
-				value, err = strconv.ParseFloat(column, 32)
-				value = float32(value.(float64))
-			case float64:
-				value, err = strconv.ParseFloat(column, 64)
-			case string:
-				value = column
-			case *string: // cannot represent nil with the string
-				value = &column
-			default:
-				return zero, fmt.Errorf("type %T: %w", columnBaseValue, ErrUnsupportedType)
-			}
-		}
-
+		value, err := columnDescriptor.parseColumn(column)
 		if err != nil {
 			return zero, fmt.Errorf("parse column %d: %w", i, err)
+		}
+
+		if columnDescriptor.reflectType.Kind() == reflect.Pointer {
+			value = ptr(value)
 		}
 
 		newStruct.Field(mappedIndex).Set(reflect.ValueOf(value))
@@ -207,21 +173,122 @@ func (s *structFactory[T]) unmarshal(record []string) (T, error) {
 		newStruct = newStruct.Addr()
 	}
 
-	return newStruct.Interface().(T), nil
+	return newStruct.Interface().(T), nil //nolint:forcetypeassert // Safe here.
+}
+
+// we need to do this because otherwise we get strange behaviour with interface
+// pointers.
+func ptr(v any) any {
+	rv := reflect.ValueOf(v)
+	pt := reflect.PointerTo(rv.Type())
+	pv := reflect.New(pt.Elem())
+	pv.Elem().Set(rv)
+
+	return pv.Interface()
+}
+
+//nolint:varnamelen // Fine for now.
+func (c *columnDescriptor) parseColumn(column string) (any, error) {
+	if c.reflectType.Kind() == reflect.Slice {
+		column = strings.Trim(column, "[]{}")
+		values := strings.Split(column, ",")
+		slice := reflect.MakeSlice(c.reflectType, len(values), len(values))
+
+		// NOTE: text slices with commands inside are currently not supported.
+		for i, item := range values {
+			v, err := c.parseString(item)
+			if err != nil {
+				return nil, fmt.Errorf("parse slice index %d, string %q: %w", i, item, err)
+			}
+
+			slice.Index(i).Set(reflect.ValueOf(v))
+		}
+
+		return slice.Interface(), nil
+	}
+
+	v, err := c.parseString(column)
+	if err != nil {
+		return nil, fmt.Errorf("parse string %q: %w", column, err)
+	}
+
+	return v, nil
+}
+
+//nolint:gocyclo,cyclop // Fine for now.
+func (c *columnDescriptor) parseString(str string) (any, error) {
+	// special case
+	//nolint:wrapcheck // Fine for now.
+	if u, ok := c.value.(Unmarshaller); ok {
+		return u.Unmarshal(str)
+	}
+
+	var (
+		value any
+		err   error
+	)
+
+	//nolint:forcetypeassert,gosec // Safe context, we know what we're doing.
+	switch c.value.(type) {
+	case bool:
+		value, err = strconv.ParseBool(str)
+	case int:
+		value, err = strconv.Atoi(str)
+	case int8:
+		value, err = strconv.ParseInt(str, 10, 8)
+		value = int8(value.(int64))
+	case int16:
+		value, err = strconv.ParseInt(str, 10, 16)
+		value = uint16(value.(int64))
+	case int32:
+		value, err = strconv.ParseInt(str, 10, 32)
+		value = int32(value.(int64))
+	case int64:
+		value, err = strconv.ParseInt(str, 10, 64)
+	case uint:
+		value, err = strconv.Atoi(str)
+		value = uint(value.(int))
+	case uint8: // aka byte
+		value, err = strconv.ParseUint(str, 10, 8)
+		value = uint8(value.(uint64))
+	case uint16:
+		value, err = strconv.ParseUint(str, 10, 16)
+		value = uint16(value.(uint64))
+	case uint32:
+		value, err = strconv.ParseUint(str, 10, 32)
+		value = uint32(value.(uint64))
+	case uint64:
+		value, err = strconv.ParseUint(str, 10, 64)
+	case float32:
+		value, err = strconv.ParseFloat(str, 32)
+		value = float32(value.(float64))
+	case float64:
+		value, err = strconv.ParseFloat(str, 64)
+	case string:
+		value = str
+	default:
+		return nil, fmt.Errorf("type %T: %w", c.value, ErrUnsupportedType)
+	}
+
+	if err != nil {
+		return nil, fmt.Errorf("parse string %q: %w", str, err)
+	}
+
+	return value, nil
 }
 
 func (s *structFactory[T]) marshalHeaders() []string {
-	headers := []string{}
+	headers := make([]string, 0, len(s.columns))
 
-	for _, name := range s.columnNames {
-		if name == "" {
+	for _, column := range s.columns {
+		if column.name == "" {
 			continue
 		}
 
-		headers = append(headers, name)
+		headers = append(headers, column.name)
 	}
 
-	return headers
+	return headers[0:len(headers):len(headers)]
 }
 
 func (s *structFactory[T]) marshal(t T, separator string) ([]string, error) {
@@ -231,16 +298,16 @@ func (s *structFactory[T]) marshal(t T, separator string) ([]string, error) {
 		reflectValue = reflectValue.Elem()
 	}
 
-	record := make([]string, 0, len(s.columnNames))
+	record := make([]string, 0, len(s.columns))
 
 	var (
 		strValue string
 		err      error
 	)
 
-	//nolint:varnamelen // Fine here.
-	for i, name := range s.columnNames {
-		if name == "" {
+	//nolint:varnamelen // Fine for now.
+	for i, column := range s.columns {
+		if column.name == "" {
 			continue
 		}
 

@@ -105,11 +105,21 @@ func testReflectSuccessDuplicate(t *testing.T) {
 	}
 
 	expected := &structFactory[foo]{
-		structType:   reflect.TypeOf(foo{}),
-		columnMap:    map[int]int{0: 0, 1: 1},
-		columnValues: []any{"", int(0)},
-		columnNames:  []string{"name", "age"},
-		options:      options,
+		structType: reflect.TypeOf(foo{}),
+		columnMap:  map[int]int{0: 0, 1: 1},
+		columns: []*columnDescriptor{
+			{
+				name:        "name",
+				value:       "",
+				reflectType: reflect.TypeOf(""),
+			},
+			{
+				name:        "age",
+				value:       int(0),
+				reflectType: reflect.TypeOf(int(0)),
+			},
+		},
+		options: options,
 	}
 
 	comparers := []cmp.Option{
@@ -212,10 +222,16 @@ func testReflectSuccessSubsetStruct(t *testing.T) {
 	}
 
 	expected := &structFactory[foo]{
-		structType:   reflect.TypeOf(foo{}),
-		columnMap:    map[int]int{1: 0},
-		columnValues: []any{float32(0)},
-		options:      options,
+		structType: reflect.TypeOf(foo{}),
+		columnMap:  map[int]int{1: 0},
+		columns: []*columnDescriptor{
+			{
+				name:        "col2",
+				value:       float32(0),
+				reflectType: reflect.TypeOf(float32(0)),
+			},
+		},
+		options: options,
 	}
 	comparers := []cmp.Option{
 		cmp.AllowUnexported(structFactory[foo]{}),
