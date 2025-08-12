@@ -1,6 +1,9 @@
 # goflat
 
-Generic-friendly flat file marshaller and unmarshaller using the `flat` field tag in structs.
+[![Go Reference](https://pkg.go.dev/badge/github.com/lzambarda/goflat.svg)](https://pkg.go.dev/github.com/lzambarda/goflat)
+[![Go Report Card](https://goreportcard.com/badge/github.com/lzambarda/goflat)](https://goreportcard.com/report/github.com/lzambarda/goflat)
+
+Generic, context-aware flat file marshaller and unmarshaller using the `flat` field tag in structs.
 
 ## Overview
 
