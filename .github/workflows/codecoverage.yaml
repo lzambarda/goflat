@@ -9,15 +9,21 @@ on:
   workflow_dispatch:
 
 jobs:
-
   build:
     runs-on: ${{ matrix.os }}
     strategy:
       matrix:
         os: [ubuntu-latest, windows-latest]
         go: [1.24]
+    permissions:
+      # Give the default GITHUB_TOKEN write permission to commit and push the
+      # added or changed files to the repository.
+      contents: write
     steps:
-    - uses: actions/checkout@v2
+    - uses: actions/checkout@v4
+      with:
+        ref: ${{ github.head_ref }}
+        fetch-depth: 0
 
     - name: Set up Go
       uses: actions/setup-go@v2
@@ -39,7 +45,7 @@ jobs:
         green: 80
         filename: coverage.out
 
-    - uses: stefanzweifel/git-auto-commit-action@v4
+    - uses: stefanzweifel/git-auto-commit-action@v6
       id: auto-commit-action
       with:
         commit_message: Apply Code Coverage Badge
