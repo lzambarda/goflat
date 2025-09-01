@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/csv"
 	"fmt"
+	"iter"
 )
 
 // Marshaller can be used to tell goflat to use custom logic to convert a field
@@ -13,13 +14,20 @@ type Marshaller interface {
 }
 
 // MarshalSliceToWriter marshals a slice of structs to a CSV file.
+//
+// NOTE: this is a direct wrapper of [MarshalIteratorToWriter].
 func MarshalSliceToWriter[T any](ctx context.Context, values []T, writer *csv.Writer, opts Options) error {
+	return MarshalIteratorToWriter(ctx, sliceToIterator(values), writer, opts)
+}
+
+// MarshalIteratorToWriter marshals an iterator of structs to a CSV file.
+func MarshalIteratorToWriter[T any](ctx context.Context, seq iter.Seq[T], writer *csv.Writer, opts Options) error {
 	ch := make(chan T) //nolint:varnamelen // Fine here.
 
 	go func() {
 		defer close(ch)
 
-		for _, value := range values {
+		for value := range seq {
 			select {
 			case <-ctx.Done():
 				return
@@ -84,4 +92,14 @@ func MarshalChannelToWriter[T any](ctx context.Context, inputCh <-chan T, writer
 	}
 
 	return nil
+}
+
+func sliceToIterator[T any](slice []T) iter.Seq[T] {
+	return func(yield func(T) bool) {
+		for _, value := range slice {
+			if !yield(value) {
+				return
+			}
+		}
+	}
 }
