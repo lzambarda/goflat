@@ -10,19 +10,23 @@ Generic, context-aware flat file marshaller and unmarshaller using the `flat` fi
 
 ```go
 type Record struct {
-    FirstName string `flat:"first_name"`
-    LastName string  `flat:"last_name"`
-    Age int          `flat:"age"`
-    Height float32   `flat:"-"` // ignored
+    FirstName string  `flat:"first_name"`
+    LastName  *string `flat:"last_name"`
+    Age       int     `flat:"age"`
+    Height    float32 `flat:"-"` // ignored
 }
 
 ...
 
-goflat.MarshalSliceToWriter[Record](ctx,inputCh,csvWriter,options)
+goflat.MarshalIteratorToWriter[Record](ctx, seq, writer *csv.Writer, opts Options)
 
-...
+// or
 
-goflat.UnmarshalToChan[Record](ctx,csvReader,options,outputCh)
+goflat.MarshalSliceToWriter[Record](ctx, slice, csvWriter, options)
+
+// or
+
+goflat.MarshalChannelToWriter[Record](ctx, inputCh, csvWriter, options)
 
 ```
 
@@ -32,6 +36,12 @@ Will result in:
 first_name,last_name,age
 John,Doe,30
 Jane,Doe,20
+```
+
+Can unmarshal too!
+
+```go
+goflat.UnmarshalToChan[Record](ctx, csvReader, options, outputCh)
 ```
 
 ## Options
