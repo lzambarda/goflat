@@ -1,5 +1,5 @@
 # goflat
-![Coverage](https://img.shields.io/badge/Coverage-81.3%25-brightgreen)
+![Coverage](https://img.shields.io/badge/Coverage-81.2%25-brightgreen)
 
 [![Go Reference](https://pkg.go.dev/badge/github.com/lzambarda/goflat.svg)](https://pkg.go.dev/github.com/lzambarda/goflat)
 [![Go Report Card](https://goreportcard.com/badge/github.com/lzambarda/goflat)](https://goreportcard.com/report/github.com/lzambarda/goflat)

@@ -71,7 +71,7 @@ func MarshalChannelToWriter[T any](ctx context.Context, inputCh <-chan T, writer
 			break
 		}
 
-		record, err := factory.marshal(value, string(writer.Comma))
+		record, err := factory.marshal(value)
 		if err != nil {
 			return fmt.Errorf("marshal %d: %w", currentLine, err)
 		}
