@@ -291,7 +291,7 @@ func (s *structFactory[T]) marshalHeaders() []string {
 	return headers[0:len(headers):len(headers)]
 }
 
-func (s *structFactory[T]) marshal(t T, separator string) ([]string, error) {
+func (s *structFactory[T]) marshal(t T) ([]string, error) {
 	reflectValue := reflect.ValueOf(t)
 
 	if s.pointer {
@@ -315,8 +315,6 @@ func (s *structFactory[T]) marshal(t T, separator string) ([]string, error) {
 		if err != nil {
 			return nil, fmt.Errorf("column %d: %w", i, err)
 		}
-
-		strValue = strings.ReplaceAll(strValue, separator, "\\"+separator)
 
 		record = append(record, strValue)
 	}
