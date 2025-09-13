@@ -85,7 +85,7 @@ func testMarshalSuccess(t *testing.T) {
 
 	input := []record{
 		{
-			FirstName:    "John",
+			FirstName:    "John, Sir",
 			LastName:     "Doe",
 			Ignore:       123,
 			Age:          30,
@@ -155,7 +155,7 @@ func testMarshalSuccessPointer(t *testing.T) {
 
 	input := []*record{
 		{
-			FirstName:    "John",
+			FirstName:    "John, Sir",
 			LastName:     "Doe",
 			Ignore:       123,
 			Age:          30,
