@@ -18,6 +18,9 @@ type Unmarshaller interface {
 
 // UnmarshalToChannel unmarshals a CSV file to a channel of structs. It
 // automatically closes the channel at the end.
+//
+// An options struct can be passed to modify the behaviour, use [StrictOptions]
+// if you're not sure about how to configure them.
 func UnmarshalToChannel[T any](ctx context.Context, reader *csv.Reader, outputCh chan<- T, opts Options) error {
 	defer close(outputCh)
 
@@ -59,6 +62,9 @@ func UnmarshalToChannel[T any](ctx context.Context, reader *csv.Reader, outputCh
 }
 
 // UnmarshalToSlice unmarshals a CSV file to a slice of structs.
+//
+// An options struct can be passed to modify the behaviour, use [StrictOptions]
+// if you're not sure about how to configure them.
 func UnmarshalToSlice[T any](ctx context.Context, reader *csv.Reader, opts Options) ([]T, error) {
 	g, ctx := errgroup.WithContext(ctx) //nolint:varnamelen // Fine here.
 
@@ -88,6 +94,9 @@ func UnmarshalToSlice[T any](ctx context.Context, reader *csv.Reader, opts Optio
 
 // UnmarshalToCallback unamrshals a CSV file invoking a callback function on
 // each row.
+//
+// An options struct can be passed to modify the behaviour, use [StrictOptions]
+// if you're not sure about how to configure them.
 func UnmarshalToCallback[T any](ctx context.Context, reader *csv.Reader, opts Options, callback func(T) error) error {
 	g, ctx := errgroup.WithContext(ctx) //nolint:varnamelen // Fine here.
 

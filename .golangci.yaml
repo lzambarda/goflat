@@ -5,13 +5,7 @@ run:
   tests: true
   allow-parallel-runners: true
 linters:
-  default: all
-  disable:
-    - depguard
-    - exhaustruct
-    - nonamedreturns
-    - paralleltest
-    - noinlineerr # Seriously some people are purists
+  default: standard
   settings:
     cyclop:
       max-complexity: 15
