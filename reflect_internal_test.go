@@ -105,18 +105,18 @@ func testReflectSuccessDuplicate(t *testing.T) {
 	}
 
 	expected := &structFactory[foo]{
-		structType: reflect.TypeOf(foo{}),
+		structType: reflect.TypeFor[foo](),
 		columnMap:  map[int]int{0: 0, 1: 1},
 		columns: []*columnDescriptor{
 			{
 				name:        "name",
 				value:       "",
-				reflectType: reflect.TypeOf(""),
+				reflectType: reflect.TypeFor[string](),
 			},
 			{
 				name:        "age",
 				value:       int(0),
-				reflectType: reflect.TypeOf(int(0)),
+				reflectType: reflect.TypeFor[int](),
 			},
 		},
 		options: options,
@@ -171,7 +171,7 @@ func testReflectSuccessSimple(t *testing.T) {
 	}
 
 	expected := &structFactory[foo]{
-		structType: reflect.TypeOf(foo{}),
+		structType: reflect.TypeFor[foo](),
 		columnMap:  map[int]int{0: 0, 1: 1},
 		options:    options,
 	}
@@ -222,13 +222,13 @@ func testReflectSuccessSubsetStruct(t *testing.T) {
 	}
 
 	expected := &structFactory[foo]{
-		structType: reflect.TypeOf(foo{}),
+		structType: reflect.TypeFor[foo](),
 		columnMap:  map[int]int{1: 0},
 		columns: []*columnDescriptor{
 			{
 				name:        "col2",
 				value:       float32(0),
-				reflectType: reflect.TypeOf(float32(0)),
+				reflectType: reflect.TypeFor[float32](),
 			},
 		},
 		options: options,
@@ -280,7 +280,7 @@ func testReflectSuccessPointer(t *testing.T) {
 	}
 
 	expected := &structFactory[*foo]{
-		structType: reflect.TypeOf(foo{}),
+		structType: reflect.TypeFor[foo](),
 		columnMap:  map[int]int{0: 0},
 		pointer:    true,
 		options:    options,

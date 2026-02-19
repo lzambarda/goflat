@@ -15,12 +15,18 @@ type Marshaller interface {
 
 // MarshalSliceToWriter marshals a slice of structs to a CSV file.
 //
+// An options struct can be passed to modify the behaviour, use [StrictOptions]
+// if you're not sure about how to configure them.
+//
 // NOTE: this is a direct wrapper of [MarshalIteratorToWriter].
 func MarshalSliceToWriter[T any](ctx context.Context, values []T, writer *csv.Writer, opts Options) error {
 	return MarshalIteratorToWriter(ctx, sliceToIterator(values), writer, opts)
 }
 
 // MarshalIteratorToWriter marshals an iterator of structs to a CSV file.
+//
+// An options struct can be passed to modify the behaviour, use [StrictOptions]
+// if you're not sure about how to configure them.
 func MarshalIteratorToWriter[T any](ctx context.Context, seq iter.Seq[T], writer *csv.Writer, opts Options) error {
 	ch := make(chan T) //nolint:varnamelen // Fine here.
 
@@ -40,6 +46,9 @@ func MarshalIteratorToWriter[T any](ctx context.Context, seq iter.Seq[T], writer
 }
 
 // MarshalChannelToWriter marshals a channel of structs to a CSV file.
+//
+// An options struct can be passed to modify the behaviour, use [StrictOptions]
+// if you're not sure about how to configure them.
 func MarshalChannelToWriter[T any](ctx context.Context, inputCh <-chan T, writer *csv.Writer, opts Options) error {
 	opts.headersFromStruct = true
 
